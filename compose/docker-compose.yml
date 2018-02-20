@@ -1,0 +1,103 @@
+version: '3'
+
+services:
+    traefik:
+       container_name: traefik
+       image: traefik:latest
+       restart: always
+       command: --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
+       ports:
+            - "80:80"
+            - "8080:8080"
+            - 443:443
+       labels:
+            - "traefik.enable=false"
+            - "traefik.port=8080"
+       volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - "/home/docker/traefik/acme.json:/acme.json"
+            - "/home/docker/traefik/traefik.toml:/etc/traefik/traefik.toml"
+            - "/home/docker/traefik/log:/var/log/traefik"
+    
+
+    webserver:
+       image: webserver-image:v1
+       container_name: webserver
+       volumes:
+         - webserver_volume:/usr/var/www
+       ports:
+         - 8084:80
+       labels:
+            - "traefik.backend=webserver"
+            - "traefik.frontend.rule=PathPrefixStrip: /"
+       restart: always
+    
+
+    elfinder:
+       image: elfinder-image:v1
+       container_name: elfinder
+       volumes:
+         - elfinder_volume:/data
+       ports:
+         - 8082:80
+       labels:
+            - "traefik.backend=elfinder"
+            - "traefik.frontend.rule=PathPrefixStrip: /elfinder"       
+       environment:
+            - ELFINDER_FILES_URI=/elfinder/files
+       
+
+    grafana:
+       image: grafana-image:v1
+       container_name: grafana
+       volumes:
+         - grafana_lib_volume:/var/lib/grafana
+         - grafana_log_volume:/var/log/grafana
+         - grafana_data_volume:/etc/grafana
+         - /home/docker/compose/grafana.ini:/etc/grafana/grafana.ini
+    #   environment:
+     #    - GF_PATHS_CONFIG=grafana.ini   
+       ports:
+         - 3000:3000
+       labels:
+            - "traefik.backend=grafana"
+            - "traefik.frontend.rule=PathPrefixStrip: /grafana"
+      
+
+    zeppelin:
+       image: zeppelin-image:v1
+       container_name: zeppelin
+#       volumes:
+ #        - zeppelin-site.xml:zeppelin-0.7.3-bin-all/conf/
+       ports:
+          - 8085:8080
+       labels:
+            - "traefik.backend=zeppelin"
+            - "traefik.frontend.rule=PathPrefixStrip: /zeppelin"
+
+
+#    nifi:
+ #     image: nifi-image:v1
+  #    container_name: nifi
+   #   volumes:
+       # - nifi_data_volume:/opt/nifi/nifi-1.4.0
+    #    - /home/docker/dataministation-builder/assets/nifi/nifi.properties:/opt/nifi/nifi-1.4.0/conf/nifi.properties
+     #   - /home/docker/dataministation-builder/assets/nifi/bootstrap.conf:/opt/nifi/nifi-1.4.0/conf/bootstrap.conf
+      #  - /home/docker/dataministation-builder/assets/nifi/nifi-env.sh:/opt/nifi/nifi-1.4.0/bin/nifi-env.sh
+     # ports:
+      #  - 8086:8080
+       # - 8181:8181
+      #labels:
+       # - "traefik.backend=nifi"
+        #- "traefik.frontend.rule=PathPrefixStrip: /nifi"
+       # - "traefik.port=8181"
+
+
+
+volumes:
+   webserver_volume:
+   elfinder_volume:
+   grafana_lib_volume:
+   grafana_log_volume:
+   grafana_data_volume:
+   nifi_data_volume:
