@@ -1,0 +1,45 @@
+version: '2'
+services:
+    traefik:
+        container_name: traefik
+        image: traefik:latest
+        restart: always
+        command: --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"
+        labels:
+            - "traefik.enable=false"
+            - "traefik.port=8080"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - "/home/docker/traefik/letsencrypt.json:/etc/traefik/letsencrypt.json"
+            - "/home/docker/traefik/traefik.toml:/etc/traefik/traefik.toml"
+            - "/home/docker/traefik/log:/var/log/traefik"
+
+    grafana:
+        container_name: grafana
+        image: grafana/grafana
+        ports:
+            - "3000:3000"
+        
+        labels:
+            - "traefik.backend=grafana"
+            - "traefik.frontend.rule=PathPrefixStrip: /grafana"
+
+        depends_on:
+            - traefik
+
+    elfinder:
+        image: elfinder
+        container_name: elfinder
+#        volumes:
+ #           - elfinder_volume:/data
+        ports:
+            - "3500:80"
+        labels:
+            - "traefik.backend=elfinder"
+            - "traefik.frontend.rule=PathPrefixStrip: /elfinder"
+        restart: always
+
